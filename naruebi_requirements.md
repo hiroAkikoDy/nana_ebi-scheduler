@@ -69,16 +69,18 @@ Kilo Code CLI（実装層）
 | 認証情報管理 | `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` 等は環境変数経由で渡す。ハードコードしない方針 |
 | 実装言語制約 | 三世のboot.sh部分はPOSIX sh (`#!/bin/sh`) 準拠。bash固有構文は持ち込まない |
 | 可用性 | 異常終了時は5秒待機後に自動再起動する自己復旧ループ（三世由来） |
+| 実行環境 | **WSL2（Ubuntu）上で稼働させる**（Windowsネイティブでは不可）。理由：boot.shの常時稼働ループはPCスリープの影響を受けにくいLinux環境の方が安定し、tmuxでのセッション維持もWSL2側でのみ想定している |
 
 ## 6. セットアップ手順
 
-1. Claude Code（Proプラン）を導入する
-2. Telegramアプリを導入し、BotFatherでBotを作成する
-3. Claude Code Channelsを設定する（`claude-plugins-official` のTelegramプラグイン）
-4. 環境変数（Telegramトークン等）を設定して起動する
-5. Google Calendar公式remote MCPサーバーへの接続をClaude Code側で設定する（カスタムコネクタ、OAuth。**Kilo Codeへの実装依頼ではない**）
-6. 実装練習として、Kilo Codeに認証不要なタスク（例：`nanaka_farm_log`リポジトリの内容を確認してdocsに説明を書き込む）を実行させ、Claude Code→Kilo Code連携の動作を確認する
-7. あとはひたすら会話する（HITLで信頼を積み上げるフェーズ）
+1. WSL2（Ubuntu）環境を用意する（未導入の場合はインストールし、Windowsのスリープ設定を確認する）
+2. Claude Code（Proプラン）をWSL2側に導入する
+3. Telegramアプリを導入し、BotFatherでBotを作成する
+4. Claude Code Channelsを設定する（`claude-plugins-official` のTelegramプラグイン）
+5. 環境変数（Telegramトークン等）を設定して起動する
+6. Google Calendar公式remote MCPサーバーへの接続をClaude Code側で設定する（カスタムコネクタ、OAuth。**Kilo Codeへの実装依頼ではない**）
+7. 実装練習として、Kilo Codeに認証不要なタスク（例：`nanaka_farm_log`リポジトリの内容を確認してdocsに説明を書き込む）を実行させ、Claude Code→Kilo Code連携の動作を確認する
+8. あとはひたすら会話する（HITLで信頼を積み上げるフェーズ）
 
 ## 7. アーキテクチャ / リスクと注意事項
 
@@ -128,3 +130,9 @@ JAXA MCP（Earth-Observation）を使った圃場の地表面温度・NDVI等の
 - MCP（Model Context Protocol）経由の外部システム連携（法務局API等）
 - 「双極性機能」などの性格拡張
 - Discord/iMessage等、Telegram以外のマルチチャネル対応
+
+## 変更履歴
+
+| 日付 | 発見フェーズ | 変更内容 | 理由 |
+|---|---|---|---|
+| 2026-08-03 | Issue #1〜#3レビュー後・Issue #4着手前 | 5章「非機能要件」に実行環境（WSL2/Ubuntu）を追記、6章「セットアップ手順」の先頭にWSL2導入ステップを追加 | 要件定義前の打ち合わせ（`要件定義前の打ち合わせ.txt`）でWSL2推奨が明確に合意されていたが、本要件定義書への反映が漏れていた。結果としてIssue #0〜#3の実装・検証がWindowsネイティブ（Git Bash/MSYS2）環境で進行していたことが判明したため、上流ドキュメントを是正した |

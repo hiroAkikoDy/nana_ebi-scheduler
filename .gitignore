@@ -3,6 +3,10 @@
 logs/
 .env
 
+# Test-generated scratch files (created by tests/verify_boot.py at runtime)
+tests/test_boot_copy.sh
+tests/test_notify.sh
+
 # OS-specific files
 .DS_Store
 Thumbs.db
