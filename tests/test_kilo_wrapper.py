@@ -6,12 +6,14 @@ import json
 import sys
 from pathlib import Path
 from unittest.mock import patch, MagicMock
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'scripts'))
 import kilo_wrapper
 
 class TestKiloWrapper(unittest.TestCase):
     def setUp(self):
-        self.wrapper = kilo_wrapper.KiloWrapper(timeout_seconds=10)
         self.test_log = Path("logs/test_kilo_wrapper.log")
+        self.wrapper = kilo_wrapper.KiloWrapper(timeout_seconds=10, log_file=str(self.test_log))
         
     def test_execute_kilo_task_timeout(self):
         """
