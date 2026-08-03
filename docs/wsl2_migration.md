@@ -3,9 +3,10 @@
 *対象：nana_ebi-scheduler の実行環境をWindowsネイティブ（Git Bash/MSYS2）からWSL2（Ubuntu）へ移行する*
 *背景：要件定義前の打ち合わせでWSL2推奨が合意されていたが、`naruebi_requirements.md`への反映漏れにより、Issue #0〜#3はWindowsネイティブ環境で実装・検証されていた（2026-08-03発見、詳細は`naruebi_requirements.md`の変更履歴を参照）*
 
-## 0. 前提確認（実施済み）
+## 0. 前提確認（実施済み・Windows側/Git Bashで実行）
 
-以下は2026-08-03時点で確認済み。
+以下は2026-08-03時点で確認済み。`wsl`コマンド自体はWindows側にしか
+存在しないため、Ubuntu側のターミナルに入った後に打っても動かない。
 
 ```
 $ wsl --list --verbose
@@ -40,9 +41,16 @@ WSL2内にネイティブでインストールし直す必要がある。
 
 ## 1. Node.js・CLIツールのネイティブインストール
 
+**(Windows側/Git Bash)** まずUbuntuシェルに入る。
+
 ```bash
 wsl -d Ubuntu
+```
 
+**(ここから先はWSL2/Ubuntu側)** プロンプトが`koga_hiroaki@...:~$`に
+変わったことを確認してから、以下を実行する。
+
+```bash
 # nvm経由でNode.jsをインストール（WSL2内で完結させる）
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
 source ~/.bashrc
@@ -78,7 +86,7 @@ wsl -d Ubuntu -e bash -c "md5sum ~/.claude/CLAUDE.md"
 md5sum "/c/Users/Koga Hiroaki/.claude/CLAUDE.md"
 ```
 
-### 2.2 スラッシュコマンド定義（.claude/commands/）
+### 2.2 スラッシュコマンド定義（.claude/commands/）（Windows側/Git Bash）
 
 ```bash
 tar -C "/c/Users/Koga Hiroaki/.claude" -cf - commands | wsl -d Ubuntu -e bash -c "mkdir -p ~/.claude && tar -C ~/.claude -xf -"
@@ -99,20 +107,20 @@ WSL2側にそのままコピーすると、パス形式の不一致（WSL2では
 **方針**：WSL2側では`settings.json`を空の状態から始め、
 このプロジェクトで実際に必要になった許可ルールのみを都度追加する。
 
-## 3. リポジトリのclone
+## 3. リポジトリのclone（WSL2/Ubuntu側）
 
 WSL2のネイティブファイルシステム内（`/mnt/c/...`経由ではなく`~/`配下）
 にcloneする。`/mnt/c/`経由だとWindows-WSL2間のファイルI/Oオーバーヘッドで
-動作が遅くなるため。
+動作が遅くなるため。1章と同じUbuntuシェルの中で続けて実行してよい
+（既にUbuntu側にいれば`wsl -d Ubuntu`は不要）。
 
 ```bash
-wsl -d Ubuntu
 cd ~
 git clone https://github.com/hiroAkikoDy/nana_ebi-scheduler.git
 cd nana_ebi-scheduler
 ```
 
-## 4. .envの再設定
+## 4. .envの再設定（WSL2/Ubuntu側）
 
 `.env`は`.gitignore`で除外されているため、Windows側の`.env`は
 そのままではWSL2側に持ち込まれない（gitに乗らないため）。
@@ -125,7 +133,7 @@ cp .env.example .env
 # .envを編集し、TELEGRAM_BOT_TOKEN・TELEGRAM_CHAT_IDを実際の値に置き換える
 ```
 
-## 5. Kilo CLIの認証設定
+## 5. Kilo CLIの認証設定（WSL2/Ubuntu側）
 
 ```bash
 kilo
@@ -133,7 +141,7 @@ kilo
 # Z.ai のAPIキーを登録
 ```
 
-## 6. 動作確認
+## 6. 動作確認（WSL2/Ubuntu側）
 
 ```bash
 # boot.shの疎通確認
@@ -152,7 +160,7 @@ python3 -m unittest discover tests
 Windows環境での実行時に発見。ロジックの誤りのため環境を問わず失敗する）。
 これらはWSL2移行とは別に、Kilo Codeへの修正依頼で対応する。
 
-## 7. tmuxでの常時稼働
+## 7. tmuxでの常時稼働（WSL2/Ubuntu側）
 
 ```bash
 tmux new-session -d -s nana_ebi
@@ -160,10 +168,12 @@ tmux send-keys -t nana_ebi "cd ~/nana_ebi-scheduler && sh boot.sh" Enter
 tmux capture-pane -t nana_ebi -p
 ```
 
-## 8. Windowsのスリープ設定確認
+## 8. Windowsのスリープ設定確認（Windows側/PowerShell）
 
 boot.shをWSL2上で常時稼働させる場合、Windows本体がスリープすると
 WSL2ごと停止する。打ち合わせ時の合意通り、スリープを無効化する。
+これはUbuntu側ではなく、Windowsのスタートメニューから
+「PowerShell」を開いて実行する。
 
 ```powershell
 # PowerShell（Windows側）で確認
