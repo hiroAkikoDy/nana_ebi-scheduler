@@ -92,57 +92,82 @@ notify_telegram "Test message from boot_restart_test"
     def _test_timeout_scenario(self):
         """
         Dynamically test that boot.sh restarts after claude exits.
-        Uses a mock claude command that exits immediately.
+        Uses a mock claude command (sh -c 'exit 1') that exits immediately
+        without killing the parent shell, allowing the while loop to continue.
         """
         self._log("Testing timeout scenario (dynamic)...")
-        
+
         boot_sh_path = Path("tests/test_boot_copy.sh")
-        
+
         boot_content = self.boot_sh_path.read_text(encoding='utf-8')
-        
-        mock_boot_content = boot_content.replace(
+
+        lines = boot_content.split('\n')
+        mock_lines = []
+        in_notify = False
+        for line in lines:
+            if 'notify_telegram()' in line:
+                in_notify = True
+                mock_lines.append('notify_telegram() {')
+                mock_lines.append('  echo "$1"')
+                continue
+            if in_notify:
+                if line.strip() == '}':
+                    mock_lines.append('}')
+                    in_notify = False
+                continue
+            mock_lines.append(line)
+
+        mock_boot_content = '\n'.join(mock_lines)
+
+        mock_boot_content = mock_boot_content.replace(
             'claude --dangerously-skip-permissions --channels plugin:telegram@claude-plugins-official -c',
-            'exit 1'
+            "sh -c 'exit 1'"
         )
-        
+
         boot_sh_path.write_text(mock_boot_content, encoding='utf-8')
         boot_sh_path.chmod(0o755)
-        
+
         start_time = time.time()
-        
-        result = subprocess.run(
+
+        proc = subprocess.Popen(
             ['sh', str(boot_sh_path)],
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
             encoding='utf-8',
-            errors='replace',
-            timeout=15
+            errors='replace'
         )
-        
+
+        try:
+            stdout, _ = proc.communicate(timeout=8)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            stdout, _ = proc.communicate()
+
         elapsed = time.time() - start_time
-        
+
         expected_messages = [
             "boot.sh起動: ナナエビちゃんを起動します",
             "ナナエビちゃんが終了 → 5秒後に再起動します",
             "ナナエビちゃんを再起動します",
         ]
-        
-        has_messages = all(msg in result.stdout for msg in expected_messages)
-        
+
+        has_messages = all(msg in stdout for msg in expected_messages)
+
         expected_min_time = 5
         expected_max_time = 12
-        
+
         timing_ok = expected_min_time <= elapsed <= expected_max_time
-        
+
         success = has_messages and timing_ok
-        
+
         self._log(f"timeout_scenario test: {'PASS' if success else 'FAIL'}")
         if not has_messages:
             self._log(f"Expected messages: {expected_messages}")
-            self._log(f"Got: {result.stdout}")
+            self._log(f"Got: {stdout}")
         if not timing_ok:
             self._log(f"Timing: elapsed={elapsed:.2f}s, expected {expected_min_time}-{expected_max_time}s")
-        
+
         return success
     
     def run_all_tests(self):
