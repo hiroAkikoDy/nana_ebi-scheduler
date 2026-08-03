@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run verify_boot.py（boot.shの静的・動的検証）
+        run: python3 tests/verify_boot.py
+
+      - name: Run unittest suite（kilo_wrapper.py）
+        run: python3 -m unittest discover tests
